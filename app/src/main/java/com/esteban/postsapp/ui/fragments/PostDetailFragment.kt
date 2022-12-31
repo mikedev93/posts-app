@@ -10,6 +10,8 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
+import androidx.navigation.ui.setupWithNavController
 import com.esteban.postsapp.databinding.FragmentPostDetailBinding
 import com.esteban.postsapp.domain.model.Comment
 import com.esteban.postsapp.domain.model.Post
@@ -37,7 +39,13 @@ class PostDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        setUpToolbar()
         subscribeViewModel()
+    }
+
+    private fun setUpToolbar() {
+        val navController = findNavController()
+        binding.fragmentPostDetailToolbar.setupWithNavController(navController)
     }
 
     private fun subscribeViewModel() {

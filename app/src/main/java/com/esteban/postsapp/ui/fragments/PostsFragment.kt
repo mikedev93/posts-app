@@ -11,6 +11,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import androidx.navigation.ui.setupWithNavController
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.esteban.postsapp.R
@@ -44,9 +45,15 @@ class PostsFragment : Fragment(), PostsListAdapter.Listener, SwipeToFavDeleteCal
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        setUpToolbar()
         configureRecyclerView()
         subscribeViewModel()
         setUpListeners()
+    }
+
+    private fun setUpToolbar() {
+        val navController = findNavController()
+        binding.fragmentPostsToolbar.setupWithNavController(navController)
     }
 
     private fun configureRecyclerView() {
