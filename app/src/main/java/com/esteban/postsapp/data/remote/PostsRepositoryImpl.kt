@@ -1,39 +1,52 @@
 package com.esteban.postsapp.data.remote
 
-import com.esteban.postsapp.data.remote.mappers.toDomain
+import com.esteban.postsapp.data.remote.util.APIResponseUtils
+import com.esteban.postsapp.domain.model.Comment
 import com.esteban.postsapp.domain.model.PaginatedResponse
 import com.esteban.postsapp.domain.model.Post
 import com.esteban.postsapp.domain.repository.PostsRepository
 import com.esteban.postsapp.domain.util.Resource
-import java.lang.Exception
+import java.io.IOException
 import javax.inject.Inject
 
 class PostsRepositoryImpl @Inject constructor(
     val postsAPI: PostsAPI
 ) : PostsRepository {
 
-    override suspend fun getPosts(page: Int?): PaginatedResponse {
+    override suspend fun getPosts(page: Int?, limit: Int?): PaginatedResponse {
         return try {
-            val response = postsAPI.fetchPosts(page)
-            if (response.isSuccessful) {
-                response.toDomain()
-            } else {
-                throw Exception()
-            }
+            val response = postsAPI.fetchPosts(page, limit)
+            if (!response.isSuccessful) throw IOException("Response error")
+
+            APIResponseUtils.postsToPaginatedResponse(response)
         } catch (e: Exception) {
             PaginatedResponse(
-                data = Resource.Error(
+                posts = Resource.Error(
                     message = "Unknown error"
                 )
             )
         }
     }
 
-    override suspend fun getPost(id: String): Resource<Post> {
+    override suspend fun getPost(id: Int): Resource<Post> {
         return try {
-            Resource.Success(
-                data = postsAPI.fetchPost(id).toDomain()
+            val response = postsAPI.fetchPost(id)
+            if (!response.isSuccessful) throw IOException("Response error")
+
+            APIResponseUtils.postResponseToPostResource(response)
+        } catch (e: Exception) {
+            Resource.Error (
+                message = "Unknown error"
             )
+        }
+    }
+
+    override suspend fun getComments(id: Int): Resource<List<Comment>> {
+        return try {
+            val response = postsAPI.fetchComments(id)
+            if (!response.isSuccessful) throw IOException("Response error")
+
+            APIResponseUtils.postCommentsResponseToUserResource(response)
         } catch (e: Exception) {
             Resource.Error (
                 message = "Unknown error"

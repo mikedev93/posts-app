@@ -9,26 +9,31 @@ import com.esteban.postsapp.domain.model.Post
 import com.esteban.postsapp.domain.repository.PostsRepository
 import com.esteban.postsapp.domain.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import java.text.FieldPosition
 import javax.inject.Inject
 
 @HiltViewModel
 class PostsViewModel @Inject constructor(
     val repository: PostsRepository
-): ViewModel() {
+) : ViewModel() {
+
+    private val resultsPerPage: Int = 20
 
     var page: Int = 0
     var nextPage: Int? = null
     var totalPages: Int? = null
     var canLoadMore: Boolean = true
 
-    private val _postsState = MutableLiveData<Resource<List<Post>?>>()
-    val postsState: LiveData<Resource<List<Post>?>>
-        get() = _postsState
+    private val _uiState = MutableStateFlow<PostsListViewState>(PostsListViewState())
+    val uiState: StateFlow<PostsListViewState> = _uiState
 
-    private val _isLoading = MutableLiveData<Boolean>()
-    val isLoading: LiveData<Boolean>
-        get() = _isLoading
+    private val eventChannel = Channel<PostsListViewEvent>()
+    val eventFlow = eventChannel.receiveAsFlow()
 
     init {
         getPosts()
@@ -36,30 +41,118 @@ class PostsViewModel @Inject constructor(
 
     fun getPosts() {
         viewModelScope.launch {
-            _isLoading.value = true
+            _uiState.value = _uiState.value.copy(isLoading = true)
             page++
-            handleResponse(repository.getPosts(page))
-            _isLoading.value = false
+
+            val result = repository.getPosts(page, resultsPerPage)
+            nextPage = result.nextPage
+            totalPages = result.lastPage
+
+            totalPages?.let {
+                canLoadMore = page < it
+            } ?: run {
+                canLoadMore = false
+            }
+
+            result.posts?.let { posts ->
+                when (posts) {
+                    is Resource.Success -> {
+                        posts.data?.let { handleResponse(it) }
+                    }
+                    is Resource.Error -> {
+                        eventChannel.send(PostsListViewEvent.DisplayError)
+                        _uiState.value = PostsListViewState(
+                            isLoading = false,
+                            hasError = true
+                        )
+                    }
+                }
+            }
         }
     }
 
     fun getAllPosts() {
         viewModelScope.launch {
-            _isLoading.value = true
-            handleResponse(repository.getPosts())
-            _isLoading.value = false
+            _uiState.value = _uiState.value.copy(posts = null, isLoading = true)
+
+            val result = repository.getPosts()
+            result.posts?.let { posts ->
+                when (posts) {
+                    is Resource.Success -> {
+                        posts.data?.let { handleResponse(it) }
+                    }
+                    is Resource.Error -> {
+                        eventChannel.send(PostsListViewEvent.DisplayError)
+                        _uiState.value = PostsListViewState(
+                            isLoading = false,
+                            hasError = true
+                        )
+                    }
+                }
+            }
         }
     }
 
-    fun handleResponse(response: PaginatedResponse) {
-        _postsState.value = response.data
-        nextPage = response.nextPage
-        totalPages = response.lastPage
+    fun deleteAllButFavorites() {
+        var currentPosts = _uiState.value.posts
 
-        response.lastPage?.let {
-            canLoadMore = page < it
-        } ?: run {
-            canLoadMore = false
+        currentPosts?.let { posts -> currentPosts = posts.filter { it.isFavorite }.toMutableList() }
+
+        _uiState.value = PostsListViewState(
+            posts = currentPosts,
+            isLoading = false,
+            hasError = false
+        )
+    }
+
+    fun handleResponse(response: MutableList<Post>) {
+        val currentPosts = _uiState.value.posts ?: mutableListOf()
+
+        currentPosts.addAll(response)
+
+        _uiState.value = PostsListViewState(
+            posts = currentPosts,
+            isLoading = false,
+            hasError = false
+        )
+    }
+
+    fun setFavoritePost(position: Int) {
+        viewModelScope.launch {
+            var posts = _uiState.value.posts
+
+            posts?.let { it[position].isFavorite = !it[position].isFavorite }
+            posts = posts?.sortedWith(compareBy({ !it.isFavorite }, { it.id }))?.toMutableList()
+
+            _uiState.value = PostsListViewState(
+                posts = posts,
+                isLoading = false,
+                hasError = false
+            )
         }
+    }
+
+    fun deletePost(position: Int) {
+        viewModelScope.launch {
+            var posts = _uiState.value.posts
+
+            posts?.removeAt(position)
+
+            _uiState.value = PostsListViewState(
+                posts = posts,
+                isLoading = false,
+                hasError = false
+            )
+        }
+    }
+
+    data class PostsListViewState(
+        val posts: MutableList<Post>? = null,
+        val isLoading: Boolean = true,
+        val hasError: Boolean = false
+    )
+
+    sealed class PostsListViewEvent {
+        object DisplayError : PostsListViewEvent()
     }
 }

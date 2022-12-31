@@ -12,7 +12,11 @@
         tools:layout="@layout/fragment_posts">
         <action
             android:id="@+id/action_postsFragment_to_postDetailFragment"
-            app:destination="@id/postDetailFragment" />
+            app:destination="@id/postDetailFragment"
+            app:enterAnim="@anim/fragment_from_right"
+            app:exitAnim="@anim/fragment_to_left"
+            app:popEnterAnim="@anim/fragment_from_left"
+            app:popExitAnim="@anim/fragment_to_right" />
     </fragment>
     <fragment
         android:id="@+id/postDetailFragment"
@@ -20,8 +24,8 @@
         android:label="fragment_post_detail"
         tools:layout="@layout/fragment_post_detail">
         <argument
-            android:name="postId"
-            app:argType="string"
+            android:name="post"
+            app:argType="com.esteban.postsapp.domain.model.Post"
             app:nullable="false" />
     </fragment>
 </navigation>

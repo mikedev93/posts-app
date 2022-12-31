@@ -12,8 +12,8 @@ class PostsListAdapter(
 
     interface Listener {
         fun selectedPost(post: Post)
-        fun favedPost(post: Post)
-        fun deletedPost(post: Post)
+        fun favedPost(position: Int)
+        fun deletedPost(position: Int)
     }
 
     private object DiffUtilCallback: DiffUtil.ItemCallback<Post>() {
@@ -33,6 +33,9 @@ class PostsListAdapter(
     override fun onBindViewHolder(holder: PostViewHolder, position: Int) {
         val post = getItem(position)
 
-        holder.setUpView(post, listener)
+        holder.post = post
+        holder.binding.viewHolderPostItem.setOnClickListener {
+            listener.selectedPost(post)
+        }
     }
 }

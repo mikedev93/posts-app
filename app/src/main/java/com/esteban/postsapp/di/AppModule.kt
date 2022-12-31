@@ -1,6 +1,7 @@
 package com.esteban.postsapp.di
 
 import com.esteban.postsapp.data.remote.PostsAPI
+import com.esteban.postsapp.data.remote.UsersAPI
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -17,6 +18,16 @@ object AppModule {
     @Provides
     @Singleton
     fun providePostsAPI(): PostsAPI {
+        return Retrofit.Builder()
+            .baseUrl("https://jsonplaceholder.typicode.com")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create()
+    }
+
+    @Provides
+    @Singleton
+    fun provideUsersAPI(): UsersAPI {
         return Retrofit.Builder()
             .baseUrl("https://jsonplaceholder.typicode.com")
             .addConverterFactory(GsonConverterFactory.create())

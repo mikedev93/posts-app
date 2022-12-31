@@ -1,12 +1,14 @@
 package com.esteban.postsapp.ui.viewholders
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import com.esteban.postsapp.databinding.ViewHolderPostBinding
 import com.esteban.postsapp.domain.model.Post
 import com.esteban.postsapp.ui.adapters.PostsListAdapter
+import kotlin.properties.Delegates
 
 class PostViewHolder(
     val binding: ViewHolderPostBinding
@@ -19,13 +21,11 @@ class PostViewHolder(
         }
     }
 
-    fun setUpView(post: Post, listener: PostsListAdapter.Listener) {
-        post.let {
-            binding.viewHolderPostTitle.text = it.title
-            binding.viewHolderPostFavoriteIndicator.isVisible = it.isFavorite
-
-            binding.viewHolderPostTitle.setOnClickListener {
-                listener.favedPost(post)
+    var post: Post? by Delegates.observable(null) {_, _, value ->
+        value?.let {
+            with(binding) {
+                viewHolderPostTitle.text = it.title
+                viewHolderPostFavoriteIndicator.visibility = if (it.isFavorite) View.VISIBLE else View.INVISIBLE
             }
         }
     }
