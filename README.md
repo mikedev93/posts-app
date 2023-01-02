@@ -84,5 +84,6 @@ MVVM achieves everything we need to separate the UI from the business logic. Our
 - [X] Implement a mechanism to load all posts from the API.
 - [x] Remote error handling
 - [x] Incorporate FRP (Functional Reactive Programming) wherever it makes sense.
+- [x] BONUS: Endless Scrolling
 - [ ] Write Unit Tests
 - [ ] Offline solution to cache data.
