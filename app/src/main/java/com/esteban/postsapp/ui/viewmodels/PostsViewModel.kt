@@ -1,10 +1,9 @@
 package com.esteban.postsapp.ui.viewmodels
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.esteban.postsapp.domain.model.PaginatedResponse
+import com.esteban.postsapp.R
 import com.esteban.postsapp.domain.model.Post
 import com.esteban.postsapp.domain.repository.PostsRepository
 import com.esteban.postsapp.domain.util.Resource
@@ -14,17 +13,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
-import java.text.FieldPosition
 import javax.inject.Inject
 
 @HiltViewModel
 class PostsViewModel @Inject constructor(
-    val repository: PostsRepository
+    val repository: PostsRepository,
+    val application: Application
 ) : ViewModel() {
 
-    private val resultsPerPage: Int = 20
-
-    var page: Int = 0
+    var pageToQuery: Int = 0
     var nextPage: Int? = null
     var totalPages: Int? = null
     var canLoadMore: Boolean = true
@@ -39,32 +36,49 @@ class PostsViewModel @Inject constructor(
         getPosts()
     }
 
-    fun getPosts() {
+    fun getPosts(retry: Boolean = false) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            page++
+            if (canLoadMore) {
+                if (retry) {
+                    _uiState.value = _uiState.value.copy(
+                        posts = null,
+                        isLoading = true
+                    )
+                } else {
+                    pageToQuery++
+                    _uiState.value = _uiState.value.copy(isLoading = true)
+                }
 
-            val result = repository.getPosts(page, resultsPerPage)
-            nextPage = result.nextPage
-            totalPages = result.lastPage
+                val resultsPerPage = application.resources.getInteger(R.integer.config_query_page_size)
 
-            totalPages?.let {
-                canLoadMore = page < it
-            } ?: run {
-                canLoadMore = false
-            }
+                val result = repository.getPosts(pageToQuery, resultsPerPage)
+                nextPage = result.nextPage
+                totalPages = result.lastPage
 
-            result.posts?.let { posts ->
-                when (posts) {
-                    is Resource.Success -> {
-                        posts.data?.let { handleResponse(it) }
-                    }
-                    is Resource.Error -> {
-                        eventChannel.send(PostsListViewEvent.DisplayError)
-                        _uiState.value = PostsListViewState(
-                            isLoading = false,
-                            hasError = true
-                        )
+                totalPages?.let {
+                    canLoadMore = pageToQuery < it
+                } ?: run {
+                    canLoadMore = false
+                }
+
+                result.posts?.let { posts ->
+                    when (posts) {
+                        is Resource.Success -> {
+                            posts.data?.let { handleResponse(it, canLoadMore) }
+                        }
+                        is Resource.Error -> {
+                            canLoadMore = true
+
+                            if (!_uiState.value.posts.isNullOrEmpty()) {
+                                eventChannel.send(PostsListViewEvent.DisplayErrorGetPosts(application.getString(R.string.posts_view_model_error_loading_posts)))
+                            } else {
+                                eventChannel.send(PostsListViewEvent.DisplayErrorGetPostsEmpty)
+                            }
+                            _uiState.value = PostsListViewState(
+                                isLoading = false,
+                                hasError = true
+                            )
+                        }
                     }
                 }
             }
@@ -73,7 +87,7 @@ class PostsViewModel @Inject constructor(
 
     fun getAllPosts() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(posts = null, isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true)
 
             val result = repository.getPosts()
             result.posts?.let { posts ->
@@ -82,11 +96,22 @@ class PostsViewModel @Inject constructor(
                         posts.data?.let { handleResponse(it) }
                     }
                     is Resource.Error -> {
-                        eventChannel.send(PostsListViewEvent.DisplayError)
-                        _uiState.value = PostsListViewState(
-                            isLoading = false,
-                            hasError = true
-                        )
+                        if (!_uiState.value.posts.isNullOrEmpty()) {
+                            eventChannel.send(PostsListViewEvent.DisplayErrorGetPosts(application.getString(R.string.posts_view_model_error_loading_posts)))
+
+                            _uiState.value = PostsListViewState(
+                                isLoading = false,
+                                hasError = true
+                            )
+                        } else {
+                            eventChannel.send(PostsListViewEvent.DisplayErrorGetPostsEmpty)
+
+                            _uiState.value = PostsListViewState(
+                                posts = null,
+                                isLoading = false,
+                                hasError = true
+                            )
+                        }
                     }
                 }
             }
@@ -105,7 +130,7 @@ class PostsViewModel @Inject constructor(
         )
     }
 
-    fun handleResponse(response: MutableList<Post>) {
+    fun handleResponse(response: MutableList<Post>, canLoadMore: Boolean = false) {
         val currentPosts = _uiState.value.posts ?: mutableListOf()
 
         currentPosts.addAll(response)
@@ -113,19 +138,20 @@ class PostsViewModel @Inject constructor(
         _uiState.value = PostsListViewState(
             posts = currentPosts,
             isLoading = false,
+            canLoadMore = canLoadMore,
             hasError = false
         )
     }
 
     fun setFavoritePost(position: Int) {
         viewModelScope.launch {
-            var posts = _uiState.value.posts
-
+            val posts = _uiState.value.posts
             posts?.let { it[position].isFavorite = !it[position].isFavorite }
-            posts = posts?.sortedWith(compareBy({ !it.isFavorite }, { it.id }))?.toMutableList()
+
+            val sortedList = posts?.sortedWith(compareBy({ !it.isFavorite }, { it.id }))?.toMutableList()
 
             _uiState.value = PostsListViewState(
-                posts = posts,
+                posts = sortedList,
                 isLoading = false,
                 hasError = false
             )
@@ -134,25 +160,43 @@ class PostsViewModel @Inject constructor(
 
     fun deletePost(position: Int) {
         viewModelScope.launch {
-            var posts = _uiState.value.posts
+            _uiState.value = _uiState.value.copy(isLoading = true)
 
-            posts?.removeAt(position)
+            val posts = _uiState.value.posts
+            val postId = posts?.get(position)?.id ?: 0
 
-            _uiState.value = PostsListViewState(
-                posts = posts,
-                isLoading = false,
-                hasError = false
-            )
+            val result = repository.deletePost(postId)
+            when (result) {
+                is Resource.Success -> {
+                    val filteredList = posts?.filter { it.id != postId }?.toMutableList()
+
+                    _uiState.value = PostsListViewState(
+                        posts = filteredList,
+                        isLoading = false,
+                        hasError = false
+                    )
+                }
+                is Resource.Error -> {
+                    eventChannel.send(PostsListViewEvent.DisplayErrorDelete(application.getString(R.string.posts_view_model_error_deleting_posts)))
+                    _uiState.value = PostsListViewState(
+                        isLoading = false,
+                        hasError = true
+                    )
+                }
+            }
         }
     }
 
     data class PostsListViewState(
         val posts: MutableList<Post>? = null,
         val isLoading: Boolean = true,
+        val canLoadMore: Boolean = true,
         val hasError: Boolean = false
     )
 
     sealed class PostsListViewEvent {
-        object DisplayError : PostsListViewEvent()
+        object DisplayErrorGetPostsEmpty : PostsListViewEvent()
+        data class DisplayErrorGetPosts(val message: String) : PostsListViewEvent()
+        data class DisplayErrorDelete(val message: String) : PostsListViewEvent()
     }
 }

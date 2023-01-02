@@ -12,11 +12,13 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.setupWithNavController
+import com.esteban.postsapp.R
 import com.esteban.postsapp.databinding.FragmentPostDetailBinding
 import com.esteban.postsapp.domain.model.Comment
 import com.esteban.postsapp.domain.model.Post
 import com.esteban.postsapp.domain.model.User
 import com.esteban.postsapp.ui.viewmodels.PostDetailViewModel
+import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -71,7 +73,15 @@ class PostDetailFragment : Fragment() {
             viewModel.eventFlow.collect { uiEvent ->
                 when (uiEvent) {
                     is PostDetailViewModel.PostDetailViewEvent.DisplayError -> {
-
+                        val snackbar = Snackbar.make(binding.root, uiEvent.message, Snackbar.LENGTH_INDEFINITE)
+                        snackbar.setAction(R.string.post_detail_fragment_snackbar_try_again) {
+                            val post = arguments?.getParcelable<Post>("post")
+                            post?.let {
+                                viewModel.getAuthor(it)
+                                viewModel.getComments(it)
+                            }
+                        }
+                        snackbar.show()
                     }
                 }
             }

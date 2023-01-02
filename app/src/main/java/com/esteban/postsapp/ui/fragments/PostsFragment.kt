@@ -18,20 +18,26 @@ import com.esteban.postsapp.R
 import com.esteban.postsapp.databinding.FragmentPostsBinding
 import com.esteban.postsapp.domain.model.Post
 import com.esteban.postsapp.ui.adapters.PostsListAdapter
+import com.esteban.postsapp.ui.util.EndlessScrollListener
 import com.esteban.postsapp.ui.util.MarginItemDecoration
 import com.esteban.postsapp.ui.util.SwipeToFavDeleteCallback
 import com.esteban.postsapp.ui.viewmodels.PostsViewModel
+import com.esteban.postsapp.ui.viewmodels.PostsViewModel.*
+import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class PostsFragment : Fragment(), PostsListAdapter.Listener, SwipeToFavDeleteCallback.Listener {
+class PostsFragment : Fragment(), PostsListAdapter.Listener, SwipeToFavDeleteCallback.Listener,
+    EndlessScrollListener.PaginationListener {
 
     lateinit var binding: FragmentPostsBinding
 
     lateinit var postsListAdapter: PostsListAdapter
 
     val viewModel: PostsViewModel by viewModels()
+
+    val endlessScrollListener: EndlessScrollListener = EndlessScrollListener(this)
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -63,7 +69,9 @@ class PostsFragment : Fragment(), PostsListAdapter.Listener, SwipeToFavDeleteCal
             adapter = postsListAdapter
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
             overScrollMode = View.OVER_SCROLL_NEVER
+            addOnScrollListener(endlessScrollListener)
             setHasFixedSize(false)
+            itemAnimator = null
             addItemDecoration(MarginItemDecoration(resources.getDimensionPixelSize(R.dimen.card_margin)))
         }
 
@@ -78,7 +86,16 @@ class PostsFragment : Fragment(), PostsListAdapter.Listener, SwipeToFavDeleteCal
                     uiState.posts?.let {
                         postsListAdapter.submitList(it)
                         postsListAdapter.notifyDataSetChanged()
+
+                        binding.fragmentPostsNoDataLayout.isVisible = it.size == 0
+
+                        val defaultPageSize = requireContext().resources.getInteger(R.integer.config_query_page_size)
+                        val resultsPageSize = if (it.size < defaultPageSize) it.size else defaultPageSize
+
+                        endlessScrollListener.setResultsPageSize(resultsPageSize)
                     }
+
+                    endlessScrollListener.setCanLoadMore(uiState.canLoadMore)
 
                     handleLoading(uiState.isLoading)
                 }
@@ -88,8 +105,14 @@ class PostsFragment : Fragment(), PostsListAdapter.Listener, SwipeToFavDeleteCal
         lifecycleScope.launchWhenStarted {
             viewModel.eventFlow.collect { uiEvent ->
                 when (uiEvent) {
-                    is PostsViewModel.PostsListViewEvent.DisplayError -> {
-                        //TODO: handle error
+                    is PostsListViewEvent.DisplayErrorGetPostsEmpty -> {
+                        binding.fragmentPostsNoDataLayout.isVisible = true
+                    }
+                    is PostsListViewEvent.DisplayErrorGetPosts -> {
+                        Snackbar.make(binding.root, uiEvent.message, Snackbar.LENGTH_LONG).show()
+                    }
+                    is PostsListViewEvent.DisplayErrorDelete -> {
+                        Snackbar.make(binding.root, uiEvent.message, Snackbar.LENGTH_LONG).show()
                     }
                 }
             }
@@ -98,12 +121,14 @@ class PostsFragment : Fragment(), PostsListAdapter.Listener, SwipeToFavDeleteCal
 
     private fun handleLoading(loading: Boolean) {
         binding.fragmentPostsLoadingLayout.isVisible = loading
+        endlessScrollListener.setIsLoading(loading)
     }
 
     private fun setUpListeners() {
         with(binding) {
             fragmentPostsEfabDeleteButton.setOnClickListener { deleteAllButFavoritePosts() }
             fragmentPostsEfabLoadFromApiButton.setOnClickListener { loadAllFromApi() }
+            fragmentPostsTryAgainButton.setOnClickListener { retryLoading() }
         }
     }
 
@@ -132,11 +157,18 @@ class PostsFragment : Fragment(), PostsListAdapter.Listener, SwipeToFavDeleteCal
         deletedPost(position)
     }
 
+    override fun getNextPage() {
+        viewModel.getPosts()
+    }
+
     fun deleteAllButFavoritePosts() {
         viewModel.deleteAllButFavorites()
     }
 
     fun loadAllFromApi() {
         viewModel.getAllPosts()
+    }
+    fun retryLoading() {
+        viewModel.getPosts(retry = true)
     }
 }

@@ -1,5 +1,11 @@
 <resources>
     <string name="app_name">PostsApp</string>
-<!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="fragment_posts_no_data_message">It seems that there are no posts \nor an error has occurred!</string>
+    <string name="fragment_posts_no_data_button_try_again">Try again</string>
+    <string name="view_holder_button_view_more">View more…</string>
+    <string name="view_post_comments_title">Comments</string>
+    <string name="posts_view_model_error_loading_posts">There was an error loading the posts.\nPlease try again.</string>
+    <string name="posts_view_model_error_deleting_posts">There was an error deleting the post.\nTry to refresh the page.</string>
+    <string name="post_view_model_error_getting_author_comments">There was an error getting the rest of the information.</string>
+    <string name="post_detail_fragment_snackbar_try_again">Try again</string>
 </resources>

@@ -3,11 +3,9 @@ package com.esteban.postsapp.ui.viewholders
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import com.esteban.postsapp.databinding.ViewHolderPostBinding
 import com.esteban.postsapp.domain.model.Post
-import com.esteban.postsapp.ui.adapters.PostsListAdapter
 import kotlin.properties.Delegates
 
 class PostViewHolder(

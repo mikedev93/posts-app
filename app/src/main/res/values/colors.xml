@@ -12,4 +12,5 @@
     <color name="background_transparent">#80ffffff</color>
     <color name="post_text">#626466</color>
     <color name="divider_gray">#E2E4E6</color>
+    <color name="link_color">#FF0000FF</color>
 </resources>

@@ -32,7 +32,7 @@ class SwipeToFavDeleteCallback(
     ) = true
 
     override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-        val position = viewHolder.absoluteAdapterPosition
+        val position = viewHolder.bindingAdapterPosition
 
         when (direction) {
             ItemTouchHelper.RIGHT -> listener.onSwipedRight(position)

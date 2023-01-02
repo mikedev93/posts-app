@@ -1,8 +1,10 @@
 package com.esteban.postsapp.ui.viewmodels
 
+import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.esteban.postsapp.R
 import com.esteban.postsapp.domain.model.Comment
 import com.esteban.postsapp.domain.model.Post
 import com.esteban.postsapp.domain.model.User
@@ -21,6 +23,7 @@ import javax.inject.Inject
 class PostDetailViewModel @Inject constructor(
     val postsRepository: PostsRepository,
     val usersRepository: UsersRepository,
+    val application: Application,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -68,7 +71,7 @@ class PostDetailViewModel @Inject constructor(
                     }
                 }
                 is Resource.Error -> {
-                    eventChannel.send(PostDetailViewEvent.DisplayError)
+                    eventChannel.send(PostDetailViewEvent.DisplayError(application.getString(R.string.post_view_model_error_getting_author_comments)))
                     _uiState.value = PostDetailViewState(
                         isLoading = false,
                         hasError = true
@@ -95,7 +98,7 @@ class PostDetailViewModel @Inject constructor(
                     }
                 }
                 is Resource.Error -> {
-                    eventChannel.send(PostDetailViewEvent.DisplayError)
+                    eventChannel.send(PostDetailViewEvent.DisplayError(application.getString(R.string.post_view_model_error_getting_author_comments)))
                     _uiState.value = PostDetailViewState(
                         isLoading = false,
                         hasError = true
@@ -114,6 +117,6 @@ class PostDetailViewModel @Inject constructor(
     )
 
     sealed class PostDetailViewEvent {
-        object DisplayError : PostDetailViewEvent()
+        data class DisplayError(val message: String) : PostDetailViewEvent()
     }
 }
