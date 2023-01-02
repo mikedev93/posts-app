@@ -1,11 +1,9 @@
-Posts App
-=======
+# Posts App
 Native Android app developed with [Kotlin](https://kotlinlang.org/), using Posts from [Json Placeholder](https://jsonplaceholder.typicode.com/) as a data source.
 
 <br>
 
 ## How to run the App
----
 Clone the proyect using:
 
 ```bash
@@ -19,20 +17,17 @@ Open the proyect in Android Studio, and once the IDE is done indexing and synchr
 <br>
 
 ## What it does
----
 The Posts App fetches a paginated list of posts from a server. Each post can be accessed for more details, marked as favorite or deleted from the list.
 
 <br>
 
 ## Architecture
----
 I went for a simple MVVM Architecture implementation, mainly because I believe a Clean Architecture approach for a small app is ~~overkill~~ too much.<br>
 MVVM achieves everything we need to separate the UI from the business logic. Our code testability is increased and we have an easier package structure to navigate, plus you can add a new feature more quickly.
 
 <br>
 
 ## Third party libraries used
----
 - [Jetpack Navigation](https://developer.android.com/guide/navigation)
   <br>Used to navigate between fragments and pass arguments. Does the heavy lifting on handling the fragment backstack.
 - [Coroutines](https://developer.android.com/kotlin/coroutines)
@@ -47,7 +42,6 @@ MVVM achieves everything we need to separate the UI from the business logic. Our
   <br>There is no need to reinvent the wheel when you have a high quality component like this. Loved the functionallity, highly customizable.
 
 ## Features
----
 
 **Main Screen**
 <br>You can see a list of posts returned by the Service.
@@ -81,7 +75,6 @@ MVVM achieves everything we need to separate the UI from the business logic. Our
 
 
 ## Bucket List
----
 
 - [x] Load posts from the API and display on Main Screen.
 - [x] Create a Post Detail Screen.
