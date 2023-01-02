@@ -14,6 +14,8 @@ git clone https://github.com/mikedev93/posts-app.git
 
 Open the proyect in Android Studio, and once the IDE is done indexing and synchronizing all the files, it'll be ready to run.
 
+**Important:** [Android Studio Dolphin | 2021.3.1](https://developer.android.com/studio/releases) is the required IDE to properly build this code.
+
 <br>
 
 ## What it does
