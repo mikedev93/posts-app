@@ -70,7 +70,11 @@ class PostsViewModel @Inject constructor(
                             canLoadMore = true
 
                             if (!_uiState.value.posts.isNullOrEmpty()) {
-                                eventChannel.send(PostsListViewEvent.DisplayErrorGetPosts(application.getString(R.string.posts_view_model_error_loading_posts)))
+                                eventChannel.send(
+                                    PostsListViewEvent.DisplayErrorGetPosts(
+                                        application.getString(R.string.posts_view_model_error_loading_posts)
+                                    )
+                                )
                             } else {
                                 eventChannel.send(PostsListViewEvent.DisplayErrorGetPostsEmpty)
                             }
@@ -97,7 +101,13 @@ class PostsViewModel @Inject constructor(
                     }
                     is Resource.Error -> {
                         if (!_uiState.value.posts.isNullOrEmpty()) {
-                            eventChannel.send(PostsListViewEvent.DisplayErrorGetPosts(application.getString(R.string.posts_view_model_error_loading_posts)))
+                            eventChannel.send(
+                                PostsListViewEvent.DisplayErrorGetPosts(
+                                    application.getString(
+                                        R.string.posts_view_model_error_loading_posts
+                                    )
+                                )
+                            )
 
                             _uiState.value = PostsListViewState(
                                 isLoading = false,
@@ -121,13 +131,16 @@ class PostsViewModel @Inject constructor(
     fun deleteAllButFavorites() {
         var currentPosts = _uiState.value.posts
 
-        currentPosts?.let { posts -> currentPosts = posts.filter { it.isFavorite }.toMutableList() }
+        currentPosts?.let { list ->
+            val filteredList = list.filter { it.isFavorite }.toMutableList()
 
-        _uiState.value = PostsListViewState(
-            posts = currentPosts,
-            isLoading = false,
-            hasError = false
-        )
+            _uiState.value = PostsListViewState(
+                posts = filteredList,
+                isLoading = false,
+                canLoadMore = false,
+                hasError = false
+            )
+        }
     }
 
     fun handleResponse(response: MutableList<Post>, canLoadMore: Boolean = false) {
@@ -148,11 +161,13 @@ class PostsViewModel @Inject constructor(
             val posts = _uiState.value.posts
             posts?.let { it[position].isFavorite = !it[position].isFavorite }
 
-            val sortedList = posts?.sortedWith(compareBy({ !it.isFavorite }, { it.id }))?.toMutableList()
+            val sortedList =
+                posts?.sortedWith(compareBy({ !it.isFavorite }, { it.id }))?.toMutableList()
 
             _uiState.value = PostsListViewState(
                 posts = sortedList,
                 isLoading = false,
+                canLoadMore = false,
                 hasError = false
             )
         }

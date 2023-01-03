@@ -9,7 +9,14 @@ data class Post (
     val title: String,
     val body: String,
     val userId: Int,
-    val user: User?,
-    val comments: List<Comment>?,
     var isFavorite: Boolean = false
-): Parcelable
+): Parcelable {
+    override fun equals(other: Any?): Boolean {
+        return other is Post &&
+                other.id == this.id &&
+                other.title == this.title &&
+                other.body == this.body &&
+                other.userId == this.userId &&
+                other.isFavorite == this.isFavorite
+    }
+}

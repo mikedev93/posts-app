@@ -15,9 +15,7 @@ fun PostDTO.toDomain(): Post {
         id = this.id,
         title = this.title,
         body = this.body,
-        userId = this.userId,
-        user = this.user?.toDomain(),
-        comments = this.comments?.map { it.toDomain() }
+        userId = this.userId
     )
 }
 
